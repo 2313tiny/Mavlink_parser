@@ -18,7 +18,8 @@ void my_mavlink_parse_char(uint8_t read_byte,
 	       		  mavlink_message_t * message,
 			  mavlink_framing_t * r_framing_status)
 {
-	//*r_framing_status = MAVLINK_FRAMING_OK;
+ 	*r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
+
 	switch(r_parse_state_status ){
 		case 	MAVLINK_PARSE_STATE_IDLE:
 		     if(MAVLINK_STX == read_byte){
@@ -26,16 +27,15 @@ void my_mavlink_parse_char(uint8_t read_byte,
 			count_payload = 0;
 			count_checksum = 0; 
 			count_signature = 0;	
-
 		//	printf("..Protocol Magic Marker:  0x%X \n", read_byte);
 		     } 
-		     *r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
+		    *r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
 		break;
 
 		case  MAVLINK_PARSE_STATE_GOT_STX:
 			message->len = read_byte;	
 			r_parse_state_status = MAVLINK_PARSE_STATE_GOT_LENGTH;
-		    	*r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
+		  	*r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
 		//	printf("..Payload Length:  %d \n", read_byte);
 		break;
 
@@ -107,6 +107,7 @@ void my_mavlink_parse_char(uint8_t read_byte,
 		case MAVLINK_PARSE_STATE_GOT_PAYLOAD:
 			if (count_payload < message->len){
 		//	printf("..12  %d, count_payload = %d\n", message->payload64, count_payload);
+				message->payload64[count_payload] = read_byte;   
 			} else {
 				*r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
 				r_parse_state_status = MAVLINK_PARSE_STATE_GOT_CRC1;	
@@ -151,7 +152,6 @@ void my_mavlink_parse_char(uint8_t read_byte,
 		default:
 			r_parse_state_status=MAVLINK_PARSE_STATE_IDLE;
 			*r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
-
 		break;
 	} 
 
@@ -159,7 +159,7 @@ void my_mavlink_parse_char(uint8_t read_byte,
 
 int main() {
   	FILE * file_ptr;
-        int character; //Use int to hold the return, as EOF is an int
+//       int character; //Use int to hold the return, as EOF is an int
 	uint8_t read_byte; //current value
 
 	mavlink_message_t frame_v2;	
@@ -175,7 +175,8 @@ int main() {
 
 	//3. Parsing
 	mavlink_framing_t r_framing_status = MAVLINK_FRAMING_INCOMPLETE;  //This holds the parser's internal state	
-	
+	printf("...  Starting Mavlink v2 parsing ...\n");
+
 	// only provide the next raw byte from the stream
 	while( EOF != (read_byte = fgetc(file_ptr))){
 		my_mavlink_parse_char(read_byte, &frame_v2, &r_framing_status); //State Machine Processor
@@ -189,8 +190,15 @@ int main() {
 			printf(" System ID:      %d\n", frame_v2.sysid);
 			printf(" Component ID:   %d\n", frame_v2.compid);
 			printf(" Message ID: 	 %d\n", frame_v2.msgid);
-			printf(" Reading 7 bytes ...\n");
+		
+			printf(" Reading %d bytes: ",frame_v2.len);
+			for(int i = 0; i < frame_v2.len; ++i){
+				printf("0x%02X ", frame_v2.payload64[i]);	
+			}
+			printf("\n");	
+			
 			printf(" Skipping 2 bytes for checksum...\n");
+			printf(" Skipping %d bytes for Signature...\n",MAVLINK_SIGNATURE_BLOCK_LEN);	
 			printf("---End of packet ---\n\n");
 		
 		} else if (MAVLINK_FRAMING_BAD_CRC ==r_framing_status) {
