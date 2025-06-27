@@ -23,6 +23,10 @@ void my_mavlink_parse_char(uint8_t read_byte,
 		case 	MAVLINK_PARSE_STATE_IDLE:
 		     if(MAVLINK_STX == read_byte){
 		    	r_parse_state_status = MAVLINK_PARSE_STATE_GOT_STX;
+			count_payload = 0;
+			count_checksum = 0; 
+			count_signature = 0;	
+
 		//	printf("..Protocol Magic Marker:  0x%X \n", read_byte);
 		     } 
 		     *r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
@@ -172,13 +176,10 @@ int main() {
 	//3. Parsing
 	mavlink_framing_t r_framing_status = MAVLINK_FRAMING_INCOMPLETE;  //This holds the parser's internal state	
 	
-
-
 	// only provide the next raw byte from the stream
 	while( EOF != (read_byte = fgetc(file_ptr))){
 		my_mavlink_parse_char(read_byte, &frame_v2, &r_framing_status); //State Machine Processor
 
-#if 10	
 		if (MAVLINK_FRAMING_OK ==r_framing_status){
 			printf("---Found Mavlink v2 Magic Marker: --- \n");
 			printf(" Payload Length: %d\n", frame_v2.len);	
@@ -190,7 +191,7 @@ int main() {
 			printf(" Message ID: 	 %d\n", frame_v2.msgid);
 			printf(" Reading 7 bytes ...\n");
 			printf(" Skipping 2 bytes for checksum...\n");
-			printf("---End of packet ---");
+			printf("---End of packet ---\n\n");
 		
 		} else if (MAVLINK_FRAMING_BAD_CRC ==r_framing_status) {
 			fprintf(stderr,"[FAIL]....Mavlink v2 message BAD CRC \n"); 	
@@ -199,7 +200,6 @@ int main() {
 		} else if (MAVLINK_FRAMING_BAD_SIGNATURE ==r_framing_status) {
 			fprintf(stderr,"[FAIL]....Mavlink v2 message BAD SIGNATURE \n "); 	
 		}	
-#endif
 	}
 
 	//4.Close the file
