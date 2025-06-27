@@ -106,36 +106,16 @@ void my_mavlink_parse_char(uint8_t read_byte,
 			*r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
 		break;
 
-		///////////////////// D O     N O T    T O U C H 
-
 		case MAVLINK_PARSE_STATE_GOT_PAYLOAD:
 		if (count_payload < message->len){
-#if 10	
-			//printf("..12  %d, count_payload = %d\n", message->payload64, count_payload);
-			message->payload64[count_payload] = (uint64_t)read_byte;    ///??possible stack...
-		
-			//if( 0 != count_payload % 4 ){
-			//	message->payload64[count_payload] =(uint64_t)read_byte;    ///??possible stack...
-			//} else {
-			 //    message->payload64[count_payload] =(uint64_t)read_byte;    ///??possible stack...
-			//}
-			
-	//		if (0 != (count_payload+1) % 4){
-	//			message->payload64[count_payload] = read_byte << 8;    ///??possible stack...
-	//		} else {
-	//		}	
-
-
+			message->payload64[count_payload] = read_byte;    
 			} else {
 				*r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
 				r_parse_state_status = MAVLINK_PARSE_STATE_GOT_CRC1;	
 				count_payload = 0; 
 			}
-#endif	
-//	}	
 			++count_payload;
 		break;
-
 
 		case MAVLINK_PARSE_STATE_GOT_CRC1:
 			if(count_checksum < 2) {
@@ -207,8 +187,7 @@ int main() {
 	printf("...  Starting Mavlink v2 parsing ...\n");
 				
 	// only provide the next raw byte from the stream
-	//	while( EOF != (read_byte = fgetc(file_ptr))){       // EOF = -1, uint8_t - unsigned
-	while( EOF != (read_character = fgetc(file_ptr))){       //????????????????
+	while( EOF != (read_character = fgetc(file_ptr))){    
 	read_byte =(uint8_t)read_character;
 		
 		my_mavlink_parse_char(read_byte, &frame_v2, &r_framing_status); //State Machine Processor
