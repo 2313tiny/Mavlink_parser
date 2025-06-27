@@ -19,7 +19,7 @@ void my_mavlink_parse_char(uint8_t read_byte,
 	switch(r_parse_state_status ){
 		case 	MAVLINK_PARSE_STATE_IDLE:
 		     if(MAVLINK_STX == read_byte){
-		    	r_parse_state_status = MAVLINK_PARSE_STATE_GOT_LENGTH;
+		    	r_parse_state_status = MAVLINK_PARSE_STATE_GOT_STX;
 			printf("..1  0x%X \n", read_byte);
 		     } 
 		     *r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
@@ -51,7 +51,7 @@ void my_mavlink_parse_char(uint8_t read_byte,
 			message->seq=read_byte;
 			r_parse_state_status = MAVLINK_PARSE_STATE_GOT_SEQ; 
 		        *r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
-			printf("..5  0x%X \n", read_byte);
+			printf("..5  %d \n", read_byte);
 
 		break;
 		
@@ -70,21 +70,21 @@ void my_mavlink_parse_char(uint8_t read_byte,
 		break;
 
 		case MAVLINK_PARSE_STATE_GOT_COMPID:
-		    	message->msgid = read_byte; 
+		    	message->msgid = (uint32_t)(read_byte<<16); 
 			r_parse_state_status = MAVLINK_PARSE_STATE_GOT_MSGID1;
 			printf("..8  \n");
 			*r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
 		break;
 
 		case MAVLINK_PARSE_STATE_GOT_MSGID1:
-			message->msgid = (uint32_t)(read_byte<<8);  //8
+			message->msgid = (message->msgid)| (uint32_t)(read_byte<<8);  //8
 			r_parse_state_status = MAVLINK_PARSE_STATE_GOT_MSGID2;
 			printf("..9   \n");
 			*r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
 		break;
 
 		case MAVLINK_PARSE_STATE_GOT_MSGID2:
-		 	message->msgid =(uint32_t) (message->msgid << 8) | read_byte; //8
+		 	message->msgid =(uint32_t) (message->msgid << 0) | read_byte; //8
 			r_parse_state_status = MAVLINK_PARSE_STATE_GOT_MSGID3;
 			printf("..10 %d \n", message->msgid);
 			*r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
@@ -97,16 +97,17 @@ void my_mavlink_parse_char(uint8_t read_byte,
 			*r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
 		break;
 
+		///////////////////// D O     N O T    T O U C H 
+
 		case MAVLINK_PARSE_STATE_GOT_PAYLOAD:
-			++count_payload;
-			if (count_payload <= message->len){
+			if (count_payload < message->len){
 			printf("..12  %d, count_payload = %d\n", message->payload64, count_payload);
 			} else {
 				*r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
 				r_parse_state_status = MAVLINK_PARSE_STATE_GOT_CRC1;	
 				count_payload = 0; 
 			}
-			
+			++count_payload;
 		break;
 
 		case MAVLINK_PARSE_STATE_GOT_CRC1:
@@ -152,7 +153,7 @@ int main() {
 	while( EOF != (read_byte = fgetc(file_ptr))){
 		my_mavlink_parse_char(read_byte, &frame_v2, &r_framing_status);
 	}	
-#if 0	
+#if 10	
 		if (MAVLINK_FRAMING_OK ==r_framing_status){
 			printf("[OK]---Mavlink v2 message detect---\n");
 			printf(" Payload length: %d", frame_v2.len);	
