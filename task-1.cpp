@@ -140,14 +140,19 @@ void my_mavlink_parse_char(uint8_t read_byte,
 		case MAVLINK_PARSE_STATE_GOT_CRC1:
 			if(count_checksum < 2) {
 				message->ck[count_checksum] = read_byte;				
-		//		printf("..13-14 %d \n,", message->ck[count_checksum]);
+			//	printf("..13-14 %d \n,", message->ck[count_checksum]);
 				*r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
 				r_parse_state_status = MAVLINK_PARSE_STATE_SIGNATURE_WAIT;
 				
 
 			} else {
-				r_parse_state_status = MAVLINK_PARSE_STATE_GOT_BAD_CRC1; 
-		 		r_parse_state_status = MAVLINK_PARSE_STATE_SIGNATURE_WAIT; 
+			//	r_parse_state_status = MAVLINK_PARSE_STATE_GOT_BAD_CRC1; 
+				if (message->incompat_flags & MAVLINK_IFLAG_SIGNED){
+		 			r_parse_state_status = MAVLINK_PARSE_STATE_SIGNATURE_WAIT; 
+				} else {
+					r_parse_state_status = MAVLINK_PARSE_STATE_GOT_BAD_CRC1; 
+				}	
+		
 			}	
 		break;
 
@@ -162,11 +167,11 @@ void my_mavlink_parse_char(uint8_t read_byte,
 				*r_framing_status = MAVLINK_FRAMING_INCOMPLETE;
 			}
 
-
 			if (count_signature == MAVLINK_SIGNATURE_BLOCK_LEN){
 				*r_framing_status = MAVLINK_FRAMING_OK;
-	//			printf("...End of packet \n\n");	
+			//	printf("...End of packet \n\n");	
 				r_parse_state_status = MAVLINK_PARSE_STATE_IDLE;	
+
 			}
 			++count_signature;
 		break;
@@ -226,7 +231,13 @@ int main() {
 			printf("\n");	
 			
 			printf(" Checksum:	 %d %d\n", frame_v2.ck[0], frame_v2.ck[1]);
-			printf(" Skipping %d bytes for Signature...\n",MAVLINK_SIGNATURE_BLOCK_LEN);	
+	
+			if (frame_v2.incompat_flags & MAVLINK_IFLAG_SIGNED){
+				printf(" Skipping %d bytes for Signature...\n",MAVLINK_SIGNATURE_BLOCK_LEN);	
+			} else {
+				printf(" No signature block expected\n");	
+			}	
+		
 			printf("---End of packet ---\n\n");
 		
 		} else if (MAVLINK_FRAMING_BAD_CRC ==r_framing_status) {
