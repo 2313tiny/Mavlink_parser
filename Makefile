@@ -18,3 +18,9 @@ clean:
 
 valgrind:
 	valgrind ./smd
+	
+
+test:
+	@clear
+	g++ -g -I../generated/include/mavlink/v2.0 -o smd parser_test.cpp
+	./smd
