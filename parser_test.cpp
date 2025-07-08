@@ -66,7 +66,10 @@ void test_garbage_before_stx()
 	assert(r_parse_state_status == MAVLINK_PARSE_STATE_IDLE);
 	my_mavlink_parse_char(0xBB, &msg, &framing_status);
 	assert(r_parse_state_status == MAVLINK_PARSE_STATE_IDLE);
+	my_mavlink_parse_char(0xCC, &msg, &framing_status);
+	assert(r_parse_state_status == MAVLINK_PARSE_STATE_IDLE);
 	
+
 	//Send the rest of the valid packet 
 	send_bytes_to_parser(&data[3], sizeof(data)-3, &msg, &framing_status);
 
@@ -78,20 +81,20 @@ void test_garbage_before_stx()
 	assert(msg.compid == 0x55); //ok
 	assert(msg.msgid == 0x112233);  //ok
 
-#if 10
-	assert(msg.payload64[0] == 0x99);//??
-	assert(msg.payload64[1] == 0x88);//??
-	assert(msg.payload64[2] == 0x77);//??
-	assert(msg.payload64[3] == 0x66);//??
-	assert(msg.payload64[4] == 0x55);//??
-	assert(msg.payload64[5] == 0x44);//??
-	assert(msg.payload64[6] == 0x33);//??
-	assert(msg.payload64[7] == 0x22);//??
-	assert(msg.payload64[8] == 0x11);//??
-#endif
-	assert(msg.ck[0] == 0x55);//ok
-	assert(msg.ck[1] == 0x44);//ok
+	assert(msg.payload64[0] == 0x99);//ok
+	assert(msg.payload64[1] == 0x88);//ok
+	assert(msg.payload64[2] == 0x77);//ok
+	assert(msg.payload64[3] == 0x66);//ok
+	assert(msg.payload64[4] == 0x55);//ok
+	assert(msg.payload64[5] == 0x44);//ok
+	assert(msg.payload64[6] == 0x33);//ok
+	assert(msg.payload64[7] == 0x22);//ok
+	assert(msg.payload64[8] == 0x11);//ok
 
+#if 10
+	assert(msg.ck[0] == 0x55);//??
+	assert(msg.ck[1] == 0x44);//??
+#endif
 
 	//	assert(framing_status == MAVLINK_FRAMING_OK);
 }
